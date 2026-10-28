@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
 
+// Always return email confirmation to the deployed GitHub Pages site.
+const EMAIL_REDIRECT_URL = 'https://origin-core.github.io/MyMiXO6/';
+
 const AVATARS = [
   { id: 'nova', name: 'Nova', symbol: '✦', color: '#b7f36b' },
   { id: 'vex', name: 'Vex', symbol: '◈', color: '#c2a7ff' },
@@ -75,7 +78,7 @@ export default function App() {
         const { data: existingUsername, error: usernameLookupError } = await supabase.from('profiles').select('id').eq('username', username).maybeSingle();
         if (usernameLookupError) throw usernameLookupError;
         if (existingUsername) throw new Error('این نام کاربری قبلاً انتخاب شده است.');
-        const { data, error } = await supabase.auth.signUp({ email: authForm.email.trim(), password: authForm.password, options: { emailRedirectTo: window.location.origin, data: { username, display_name: authForm.display_name.trim() || username, avatar_key: 'nova' } } });
+        const { data, error } = await supabase.auth.signUp({ email: authForm.email.trim(), password: authForm.password, options: { emailRedirectTo: EMAIL_REDIRECT_URL, data: { username, display_name: authForm.display_name.trim() || username, avatar_key: 'nova' } } });
         if (error) throw error;
         if (data.session) { setSession(data.session); await loadProfile(data.user); setModal(''); flash('اکانت ساخته شد؛ خوش آمدی!'); }
         else { setModal(''); flash('لینک تأیید به ایمیلت ارسال شد. ایمیلت را تأیید کن و بعد وارد شو.'); }
