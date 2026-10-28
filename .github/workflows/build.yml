@@ -31,9 +31,9 @@ jobs:
 
       - name: Build Vite app for the repository path
         run: npm run build -- --base=/MyMiXO6/
-        env:
-          https://ozeoopcxywivzwefnylu.supabase.co: ${{ vars.VITE_SUPABASE_URL }}
-          sb_publishable_coxokXzU9vDsr4Wepv6Dcg_AnsTDVVt: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+  env:
+  VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+  VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
