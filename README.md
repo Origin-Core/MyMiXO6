@@ -12,7 +12,7 @@
 <br/><br/>
 
 <a href="https://origin-core.github.io/MyMiXO6/">
-  <img src="https://readme-typing-svg.demolab.com?font=Orbitron&amp;weight=900&amp;size=38&amp;duration=900&amp;pause=300&amp;color=F5FF00&amp;background=102008&amp;center=true&amp;vCenter=true&amp;repeat=true&amp;width=700&amp;height=105&amp;lines=%E2%98%A2+ENTER+SITE+%E2%98%A2" alt="☢ ENTER SITE ☢ — Click to open MyMiXO6" width="700" />
+  <img src="https://readme-typing-svg.demolab.com?font=Orbitron&amp;weight=900&amp;size=38&amp;duration=900&amp;pause=300&amp;color=F5FF00&amp;background=102008&amp;center=true&amp;vCenter=true&amp;repeat=true&amp;width=700&amp;height=105&amp;lines=%E2%98%A2+ورود+به سایت+%E2%98%A2" alt="☢ ENTER SITE ☢ — Click to open MyMiXO6" width="700" />
 </a>
 
 <br/>
