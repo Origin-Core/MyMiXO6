@@ -22,11 +22,14 @@ const avatarFor = (key) => AVATARS.find((item) => item.id === key) || AVATARS[0]
 const countFor = (room) => Number(room && room.member_count != null ? room.member_count : 1);
 
 function BrandLogo({ stacked = false, compact = false }) {
-  return <div className={'brand-lockup' + (stacked ? ' brand-lockup-stacked' : '') + (compact ? ' brand-lockup-compact' : '')}>
-    {stacked ? <>
-      <img className="brand-mark-image" src={PUBLIC_BASE + 'mymixo6-mark.webp'} alt="نشان MyMiXO6" />
-      <span className="brand-wordmark">MyMiXO<span>6</span></span>
-    </> : <img className="brand-logo-image" src={PUBLIC_BASE + 'mymixo6-logo.webp'} alt="MyMiXO6" />}
+  return <div className={'brand-lockup' + (stacked ? ' brand-lockup-stacked' : '') + (compact ? ' brand-lockup-compact' : '')} aria-label="MyMiXO6">
+    <svg className="brand-sigil" viewBox="0 0 180 112" role="img" aria-label="نشان اختصاصی MyMiXO6">
+      <path className="sigil-main" d="M10 65 L27 25 L47 62 L66 28 L84 64 L104 32 L119 63 L137 27 L158 64" />
+      <path className="sigil-sweep" d="M11 77 C30 99 68 101 96 83 C119 67 142 70 164 82" />
+      <path className="sigil-cross" d="M135 16 L150 38 L166 17 M150 38 L166 59" />
+      <circle className="sigil-node" cx="105" cy="32" r="3.2" />
+    </svg>
+    <span className="brand-wordmark">MyMiXO<span>6</span></span>
   </div>;
 }
 function Avatar({ profile, size = 'md' }) {
@@ -41,9 +44,28 @@ function formatTime(value) {
   if (!value) return '';
   return new Intl.DateTimeFormat('fa-IR', { hour: '2-digit', minute: '2-digit' }).format(new Date(value));
 }
+function secondsUntilLobbyCloses(fullAt, now = Date.now()) {
+  const timestamp = Date.parse(fullAt || '');
+  if (!Number.isFinite(timestamp)) return null;
+  return Math.max(0, Math.ceil((timestamp + 10 * 60 * 1000 - now) / 1000));
+}
+function formatCountdown(fullAt, now = Date.now()) {
+  const remaining = secondsUntilLobbyCloses(fullAt, now);
+  if (remaining === null) return 'در حال همگام‌سازی';
+  const minutes = Math.floor(remaining / 60);
+  const seconds = remaining % 60;
+  const digits = new Intl.NumberFormat('fa-IR', { minimumIntegerDigits: 2, useGrouping: false });
+  return digits.format(minutes) + ':' + digits.format(seconds);
+}
 
 export default function App() {
   const [session, setSession] = useState(null);
+  const [theme, setTheme] = useState(() => {
+    try {
+      const saved = window.localStorage.getItem('mymixo6-theme');
+      return saved === 'classic' ? 'classic' : 'neon';
+    } catch { return 'neon'; }
+  });
   const [profile, setProfile] = useState(null);
   const [publicProfile, setPublicProfile] = useState(null);
   const [returnPage, setReturnPage] = useState('lobbies');
@@ -54,6 +76,7 @@ export default function App() {
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
   const [panelLoading, setPanelLoading] = useState(false);
+  const [clockNow, setClockNow] = useState(Date.now());
   const [search, setSearch] = useState('');
   const [gameFilter, setGameFilter] = useState('ALL');
   const [activeLobby, setActiveLobby] = useState(null);
@@ -70,6 +93,15 @@ export default function App() {
     window.setTimeout(() => setNotice(''), 4600);
   }, []);
 
+  useEffect(() => {
+    try { window.localStorage.setItem('mymixo6-theme', theme); } catch { /* Storage can be unavailable in private contexts. */ }
+  }, [theme]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setClockNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   const loadProfile = useCallback(async (user) => {
     if (!supabase || !user) return;
     const { data, error } = await supabase.from('profiles').select('id,username,display_name,avatar_key,bio,created_at').eq('id', user.id).maybeSingle();
@@ -82,7 +114,7 @@ export default function App() {
 
   const loadRooms = useCallback(async () => {
     if (!supabase) return;
-    const { data, error } = await supabase.from('lobbies').select('id,owner_id,game_name,title,server_url,description,region,max_players,member_count,status,created_at,profiles!lobbies_owner_id_fkey(username,display_name,avatar_key)').eq('status', 'open').order('created_at', { ascending: false }).limit(60);
+    const { data, error } = await supabase.from('lobbies').select('id,owner_id,game_name,title,server_url,description,region,max_players,member_count,status,full_at,created_at,profiles!lobbies_owner_id_fkey(username,display_name,avatar_key)').in('status', ['open', 'full']).order('created_at', { ascending: false }).limit(60);
     if (error) { console.error('lobbies:', error.message); return; }
     setRooms(data || []);
   }, []);
@@ -91,7 +123,7 @@ export default function App() {
     if (!supabase || !lobbyId) return;
     if (!silent) setPanelLoading(true);
     try {
-      const { data: room, error: roomError } = await supabase.from('lobbies').select('id,owner_id,game_name,title,server_url,description,region,max_players,member_count,status,created_at,profiles!lobbies_owner_id_fkey(username,display_name,avatar_key,bio)').eq('id', lobbyId).maybeSingle();
+      const { data: room, error: roomError } = await supabase.from('lobbies').select('id,owner_id,game_name,title,server_url,description,region,max_players,member_count,status,full_at,created_at,profiles!lobbies_owner_id_fkey(username,display_name,avatar_key,bio)').eq('id', lobbyId).maybeSingle();
       if (roomError) throw roomError;
       if (!room) throw new Error('این لابی پیدا نشد یا دسترسی آن را نداری.');
       const { data: membershipRows, error: memberError } = await supabase.from('lobby_members').select('lobby_id,user_id,joined_at').eq('lobby_id', lobbyId).order('joined_at', { ascending: true });
@@ -223,6 +255,7 @@ export default function App() {
       const { data: existing, error: memberError } = await supabase.from('lobby_members').select('lobby_id').eq('lobby_id', room.id).eq('user_id', session.user.id).maybeSingle();
       if (memberError) throw memberError;
       if (existing || room.owner_id === session.user.id) { setActiveLobby(room); setPage('lobby-room'); await loadLobbyPanel(room.id); return; }
+      if (room.status === 'full') { flash('ظرفیت این لابی تکمیل شده؛ فقط اعضای فعلی می‌توانند پنل را ببینند.'); return; }
       if (room.status !== 'open') { flash('این لابی بسته شده است.'); return; }
       await joinRoom(room);
     } catch (error) { flash(error.message || 'باز کردن پنل لابی انجام نشد.'); }
@@ -235,6 +268,7 @@ export default function App() {
       const { data: existing, error: lookupError } = await supabase.from('lobby_members').select('lobby_id').eq('lobby_id', room.id).eq('user_id', session.user.id).maybeSingle();
       if (lookupError) throw lookupError;
       if (!existing) {
+        if (room.status === 'full') throw new Error('ظرفیت این لابی تکمیل شده است.');
         if (room.status !== 'open') throw new Error('این لابی بسته شده است.');
         if (countFor(room) >= Number(room.max_players)) throw new Error('ظرفیت این لابی تکمیل شده است.');
         const { error } = await supabase.from('lobby_members').insert({ lobby_id: room.id, user_id: session.user.id });
@@ -249,7 +283,8 @@ export default function App() {
     event.preventDefault();
     const body = messageDraft.trim();
     if (!body || !activeLobby || !session || !supabase || busy) return;
-    if (activeLobby.status !== 'open') { flash('این لابی بسته شده و چت آن فقط قابل مشاهده است.'); return; }
+    const fullRemaining = activeLobby.status === 'full' ? secondsUntilLobbyCloses(activeLobby.full_at) : null;
+    if (activeLobby.status === 'closed' || (activeLobby.status === 'full' && (fullRemaining === null || fullRemaining <= 0))) { flash('مهلت این لابی تمام شده است؛ چت فقط قابل مشاهده است.'); return; }
     setBusy(true);
     try {
       const { error } = await supabase.from('lobby_messages').insert({ lobby_id: activeLobby.id, user_id: session.user.id, body });
@@ -321,7 +356,28 @@ export default function App() {
   }
   function goHome() { setPage('lobbies'); setActiveLobby(null); setMembers([]); setMessages([]); loadRooms(); }
 
-  return <div className="app-shell">
+  function moveBrandWithPointer(event) {
+    const element = event.currentTarget;
+    const rect = element.getBoundingClientRect();
+    const x = Math.max(0, Math.min(1, (event.clientX - rect.left) / Math.max(rect.width, 1)));
+    const y = Math.max(0, Math.min(1, (event.clientY - rect.top) / Math.max(rect.height, 1)));
+    element.style.setProperty('--pointer-x', (x * 100).toFixed(1) + '%');
+    element.style.setProperty('--pointer-y', (y * 100).toFixed(1) + '%');
+    element.style.setProperty('--drift-x', ((x - 0.5) * 10).toFixed(1) + 'px');
+    element.style.setProperty('--drift-y', ((y - 0.5) * 8).toFixed(1) + 'px');
+  }
+  function resetBrandPointer(event) {
+    const element = event.currentTarget;
+    element.style.setProperty('--pointer-x', '50%');
+    element.style.setProperty('--pointer-y', '50%');
+    element.style.setProperty('--drift-x', '0px');
+    element.style.setProperty('--drift-y', '0px');
+    element.classList.remove('is-pressed');
+  }
+  const activeLobbyRemaining = activeLobby && activeLobby.status === 'full' ? secondsUntilLobbyCloses(activeLobby.full_at, clockNow) : null;
+  const canChatInLobby = Boolean(activeLobby && (activeLobby.status === 'open' || (activeLobby.status === 'full' && activeLobbyRemaining !== null && activeLobbyRemaining > 0)));
+
+  return <div className="app-shell" data-theme={theme}>
     <div className="ambient ambient-a"/><div className="ambient ambient-b"/><div className="ambient ambient-c"/>
     <header className="topbar">
       <button className="brand-button" onClick={goHome} aria-label="بازگشت به خانه"><BrandLogo compact/></button>
@@ -330,7 +386,9 @@ export default function App() {
         <button className={page === 'config' ? 'nav-link active' : 'nav-link'} onClick={() => setPage('config')}>Config <span className="nav-soon">به‌زودی</span></button>
         <button className={page === 'store' ? 'nav-link active' : 'nav-link'} onClick={() => setPage('store')}>فروشگاه <span className="nav-soon">به‌زودی</span></button>
       </nav>
-      <div className="top-actions">{session ? <>
+      <div className="top-actions">
+        <button className="appearance-button" onClick={() => setModal('appearance')} aria-label="تغییر تم و ظاهر سایت" title="تغییر تم"><span className="appearance-glyph">✧</span><span className="appearance-label">ظاهر</span></button>
+        {session ? <>
         <button className="profile-chip" onClick={() => { setReturnPage(page); setProfileForm({ username: profile && profile.username || '', display_name: profile && profile.display_name || '', avatar_key: profile && profile.avatar_key || 'nova', bio: profile && profile.bio || '' }); setPage('profile'); }}><Avatar profile={profile} size="xs"/><span>{profile && profile.display_name || 'بازیکن'}</span><Icon>⌄</Icon></button>
         <button className="icon-button" title="خروج از حساب" onClick={logout}><Icon>↗</Icon></button>
       </> : <button className="login-button" onClick={() => openAuth('login')}>ورود / ثبت‌نام <span>↗</span></button>}</div>
@@ -342,12 +400,18 @@ export default function App() {
           <div className="hero-copy"><Eyebrow>MYMIXO6 / FIND YOUR SQUAD</Eyebrow><h1>بازی وقتی<br/><em>قشنگ‌تره که</em><br/><span>با تیم خودت باشی.</span></h1>
             <p className="hero-description">لابی بساز، آدم‌های هم‌فاز پیدا کن و قبل از شروع بازی با تیمت هماهنگ شو. همه‌چیز در یک جای اختصاصی، با چت زنده و پروفایل اعضا.</p>
             <div className="hero-actions"><button className="primary-button" onClick={() => session ? setModal('room') : openAuth('signup')}>ساخت لابی <span>＋</span></button><button className="ghost-button" onClick={() => document.getElementById('lobby-board') && document.getElementById('lobby-board').scrollIntoView({ behavior: 'smooth' })}>پیدا کردن تیم <span>↓</span></button></div>
-            <div className="hero-stats"><div className="hero-stat"><strong>{rooms.length.toLocaleString('fa-IR')}</strong><span>لابی باز</span></div><div className="stat-divider"/><div className="hero-stat"><strong>LIVE</strong><span>همگام‌سازی زنده</span></div><div className="stat-divider"/><div className="hero-stat"><strong>۰۸</strong><span>آواتار اختصاصی</span></div></div>
+            <div className="hero-stats"><div className="hero-stat"><strong>{rooms.filter((room) => room.status === 'open').length.toLocaleString('fa-IR')}</strong><span>لابی باز</span></div><div className="stat-divider"/><div className="hero-stat"><strong>LIVE</strong><span>همگام‌سازی زنده</span></div><div className="stat-divider"/><div className="hero-stat"><strong>۰۸</strong><span>آواتار اختصاصی</span></div></div>
           </div>
-          <div className="hero-visual"><div className="visual-ring ring-one"/><div className="visual-ring ring-two"/><div className="visual-grid"/><div className="visual-orbit-label orbit-label-top"><span className="status-pulse"/> LOBBY NETWORK / ONLINE</div>
-            <div className="hero-brand-card"><BrandLogo stacked/><div className="hero-brand-caption">PLAY TOGETHER. STAY IN SYNC.</div></div>
-            <div className="floating-avatar floating-avatar-one"><Avatar profile={{ avatar_key: 'nova' }} size="lg"/></div><div className="floating-avatar floating-avatar-two"><Avatar profile={{ avatar_key: 'luna' }} size="md"/></div><div className="floating-avatar floating-avatar-three"><Avatar profile={{ avatar_key: 'ember' }} size="sm"/></div>
-            <div className="visual-tag visual-tag-bottom"><span className="tag-dot"/><div><strong>YOUR NEXT SQUAD</strong><small>IS WAITING FOR YOU</small></div><span className="tag-arrow">↗</span></div><div className="visual-index">MM / 06 — PLAYER CONNECTED</div>
+          <div className="hero-brand-stage" onPointerMove={moveBrandWithPointer} onPointerLeave={resetBrandPointer} onPointerDown={(event) => event.currentTarget.classList.add('is-pressed')} onPointerUp={(event) => event.currentTarget.classList.remove('is-pressed')} onPointerCancel={resetBrandPointer} aria-label="نشان و نام MyMiXO6">
+            <div className="brand-stage-light" aria-hidden="true" />
+            <div className="brand-stage-content">
+              <BrandLogo stacked />
+              <span className="brand-stage-rule" aria-hidden="true" />
+              <p className="hero-brand-caption">YOUR SQUAD. YOUR SPACE.</p>
+              <span className="brand-stage-edition">MM / 06 <i /> PLAYER HUB</span>
+            </div>
+            <span className="brand-stage-corner brand-stage-corner-a" aria-hidden="true">＋</span>
+            <span className="brand-stage-corner brand-stage-corner-b" aria-hidden="true">＋</span>
           </div>
         </section>
         <section className="feature-strip"><div className="feature-item"><span className="feature-icon feature-icon-cyan">◉</span><div><strong>چت زندهٔ تیمی</strong><small>هماهنگی قبل از شروع</small></div></div><div className="feature-item"><span className="feature-icon feature-icon-violet">✧</span><div><strong>پروفایل‌های اختصاصی</strong><small>اعضای تیمت رو بشناس</small></div></div><div className="feature-item"><span className="feature-icon feature-icon-acid">⌁</span><div><strong>کنترل کامل سازنده</strong><small>لابی دست خودته</small></div></div></section>
@@ -356,10 +420,10 @@ export default function App() {
           <div className="board-toolbar"><div className="board-title"><span className="status-pulse"/> لابی‌های در دسترس <span className="count-pill">{filteredRooms.length.toLocaleString('fa-IR')}</span></div><div className="toolbar-tools"><label className="search-box"><Icon>⌕</Icon><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="جست‌وجوی بازی یا لابی..." aria-label="جست‌وجوی لابی"/></label><label className="filter-box"><span>بازی</span><select value={gameFilter} onChange={(event) => setGameFilter(event.target.value)} aria-label="فیلتر بازی">{games.map((game) => <option key={game} value={game}>{game === 'ALL' ? 'همهٔ بازی‌ها' : game}</option>)}</select></label></div></div>
           {!isSupabaseConfigured && <div className="setup-note">اتصال Supabase تنظیم نشده؛ لابی‌های زیر فقط نمونه هستند.</div>}
           <div className="lobby-grid">{filteredRooms.map((room, index) => <article className="lobby-card" key={room.id} style={{ '--card-delay': (index * 70) + 'ms' }}>
-            <div className={'lobby-card-cover cover-' + (index % 4)}><span className="cover-game">{room.game_name}</span><span className="cover-serial">MM / {String(index + 1).padStart(2, '0')}</span><div className="cover-orbit"/><div className="cover-mark"><BrandLogo compact/></div><span className="cover-state"><i/> {room.status === 'open' ? 'OPEN LOBBY' : 'CLOSED'}</span></div>
+            <div className={'lobby-card-cover cover-' + (index % 4)}><span className="cover-game">{room.game_name}</span><span className="cover-serial">MM / {String(index + 1).padStart(2, '0')}</span><div className="cover-orbit"/><div className="cover-mark"><BrandLogo compact/></div><span className={'cover-state' + (room.status === 'full' ? ' cover-state-full' : '')}><i/> {room.status === 'full' ? 'CLOSING · ' + formatCountdown(room.full_at, clockNow) : 'OPEN LOBBY'}</span></div>
             <div className="lobby-card-body"><div className="card-meta"><span className="region-chip">{room.region || 'EU'} REGION</span><span className="card-members">♙ {countFor(room).toLocaleString('fa-IR')} / {Number(room.max_players).toLocaleString('fa-IR')}</span></div><h3>{room.title}</h3><p className="lobby-description">{room.description || 'برای این لابی توضیحی ثبت نشده.'}</p>
               <div className="card-owner"><Avatar profile={room.profiles} size="sm"/><div><span>سازندهٔ لابی</span><strong>{room.profiles && (room.profiles.display_name || room.profiles.username) || 'بازیکن'}</strong></div><span className="owner-handle">@{room.profiles && room.profiles.username || 'player'}</span></div>
-              <button className="card-join-button" disabled={!supabase || (room.status !== 'open' && (!session || room.owner_id !== session.user.id))} onClick={() => openLobby(room)}>{room.status === 'open' ? 'ورود به پنل لابی' : 'مشاهدهٔ پنل'} <span>↗</span></button>
+              <button className="card-join-button" disabled={!supabase} onClick={() => openLobby(room)}>{room.status === 'full' ? 'پنل اعضا / ظرفیت تکمیل' : 'ورود به پنل لابی'} <span>↗</span></button>
             </div>
           </article>)}
           {filteredRooms.length === 0 && <div className="empty-state"><div className="empty-illustration"><BrandLogo stacked/></div><h3>هنوز لابی‌ای پیدا نشده</h3><p>فیلتر رو تغییر بده یا اولین لابی این بازی رو بساز.</p><button className="primary-button" onClick={() => session ? setModal('room') : openAuth('signup')}>ساخت اولین لابی <span>＋</span></button></div>}</div>
@@ -370,14 +434,15 @@ export default function App() {
 
       {page === 'lobby-room' && <section className="room-page"><button className="back-link" onClick={goHome}>← بازگشت به لابی‌ها</button>
         {panelLoading && !activeLobby ? <div className="loading-panel"><span className="loader-ring"/><strong>در حال آماده‌سازی پنل لابی...</strong></div> : activeLobby ? <>
-          <div className="room-heading"><div className="room-heading-main"><Eyebrow>PRIVATE TEAM SPACE / {activeLobby.game_name}</Eyebrow><h1>{activeLobby.title}</h1><p>{activeLobby.description || 'پنل اختصاصی برای هماهنگی اعضای لابی.'}</p></div><div className="room-status-stack"><span className={activeLobby.status === 'open' ? 'live-status' : 'closed-status'}><i/>{activeLobby.status === 'open' ? 'لابی در حال اجرا' : 'لابی بسته شده'}</span><span className="room-id">ID / {String(activeLobby.id).slice(0, 8).toUpperCase()}</span></div></div>
-          {activeLobby.status !== 'open' && <div className="closed-banner">این لابی توسط سازنده بسته شده است؛ پیام‌های قبلی قابل مشاهده‌اند اما ارسال پیام جدید و پیوستن غیرفعال است.</div>}
+          <div className="room-heading"><div className="room-heading-main"><Eyebrow>PRIVATE TEAM SPACE / {activeLobby.game_name}</Eyebrow><h1>{activeLobby.title}</h1><p>{activeLobby.description || 'پنل اختصاصی برای هماهنگی اعضای لابی.'}</p></div><div className="room-status-stack"><span className={activeLobby.status === 'open' ? 'live-status' : activeLobby.status === 'full' ? 'full-status' : 'closed-status'}><i/>{activeLobby.status === 'open' ? 'لابی باز است' : activeLobby.status === 'full' ? 'مهلت پایانی لابی' : 'لابی بسته شده'}</span>{activeLobby.status === 'full' && <span className="full-countdown" aria-live="polite"><small>زمان باقی‌مانده</small><strong>{formatCountdown(activeLobby.full_at, clockNow)}</strong></span>}<span className="room-id">ID / {String(activeLobby.id).slice(0, 8).toUpperCase()}</span></div></div>
+          {activeLobby.status === 'full' && <div className="full-banner"><span className="full-banner-icon">◷</span><div><strong>تایمر پایان لابی شروع شده!</strong><p>از لحظهٔ تکمیل ظرفیت، ۱۰ دقیقه فرصت دارید. این زمان با خروج اعضا از نو آغاز نمی‌شود و پس از پایانش لابی خودکار بسته می‌شود.</p></div><strong className="full-banner-timer">{formatCountdown(activeLobby.full_at, clockNow)}</strong></div>}
+          {activeLobby.status === 'closed' && <div className="closed-banner">این لابی بسته شده است؛ پیام‌های قبلی قابل مشاهده‌اند اما ارسال پیام جدید و پیوستن غیرفعال است.</div>}
           <div className="room-layout"><section className="chat-panel">
-            <div className="panel-heading"><div className="panel-title-icon">◉</div><div><h2>چت تیم</h2><p>صحبت‌ها فقط برای اعضای همین لابی نمایش داده می‌شوند.</p></div><span className={activeLobby.status === 'open' ? 'chat-live' : 'chat-archived'}><i/>{activeLobby.status === 'open' ? 'LIVE CHAT' : 'ARCHIVED'}</span></div>
+            <div className="panel-heading"><div className="panel-title-icon">◉</div><div><h2>چت تیم</h2><p>صحبت‌ها فقط برای اعضای همین لابی نمایش داده می‌شوند.</p></div><span className={canChatInLobby ? 'chat-live' : 'chat-archived'}><i/>{activeLobby.status === 'full' && canChatInLobby ? 'CLOSING · ' + formatCountdown(activeLobby.full_at, clockNow) : canChatInLobby ? 'LIVE CHAT' : 'ARCHIVED'}</span></div>
             <div className="chat-messages">{!messages.length && <div className="chat-empty"><span>✧</span><strong>اولین پیام رو تو بفرست</strong><p>اینجا محل هماهنگی تیمه؛ شروع کن.</p></div>}
               {messages.map((message) => { const sender = message.profiles || {}; const own = session && message.user_id === session.user.id; return <article className={'chat-message' + (own ? ' own-message' : '')} key={message.id}><button className="message-avatar-button" title="مشاهدهٔ پروفایل" onClick={() => openPublicProfile(sender.username, 'lobby-room', sender)}><Avatar profile={sender} size="sm"/></button><div className="message-content"><div className="message-meta"><button onClick={() => openPublicProfile(sender.username, 'lobby-room', sender)}>{sender.display_name || sender.username || 'بازیکن'}</button><span>@{sender.username || 'player'}</span><time>{formatTime(message.created_at)}</time></div><p>{message.body}</p></div></article>; })}<div ref={messagesEndRef}/>
             </div>
-            <form className="chat-composer" onSubmit={sendMessage}><input value={messageDraft} onChange={(event) => setMessageDraft(event.target.value)} maxLength={1000} placeholder={activeLobby.status === 'open' ? 'پیامت رو برای اعضای تیم بنویس...' : 'این لابی بسته شده است.'} aria-label="متن پیام" disabled={activeLobby.status !== 'open' || !supabase}/><span className="message-length">{messageDraft.length.toLocaleString('fa-IR')} / ۱۰۰۰</span><button type="submit" disabled={busy || activeLobby.status !== 'open' || !messageDraft.trim() || !supabase}>ارسال <span>↗</span></button></form>
+            <form className="chat-composer" onSubmit={sendMessage}><input value={messageDraft} onChange={(event) => setMessageDraft(event.target.value)} maxLength={1000} placeholder={canChatInLobby ? 'پیامت رو برای اعضای تیم بنویس...' : 'این لابی بسته شده است.'} aria-label="متن پیام" disabled={!canChatInLobby || !supabase}/><span className="message-length">{messageDraft.length.toLocaleString('fa-IR')} / ۱۰۰۰</span><button type="submit" disabled={busy || !canChatInLobby || !messageDraft.trim() || !supabase}>ارسال <span>↗</span></button></form>
             <div className="chat-foot"><span><i/> فضای گفت‌وگوی اختصاصی</span><span>مودبانه بازی کنیم ✦</span></div>
           </section>
           <aside className="room-sidebar"><section className="members-panel"><div className="panel-heading member-heading"><div><Eyebrow>YOUR SQUAD</Eyebrow><h2>اعضای لابی <span>{members.length.toLocaleString('fa-IR')}</span></h2></div><span className="members-limit">{members.length} / {activeLobby.max_players}</span></div>
@@ -385,7 +450,7 @@ export default function App() {
             <div className="members-note"><span>◇</span> برای دیدن پروفایل هر بازیکن، روی تصویر یا نامش بزن.</div>
           </section>
           <section className="room-info-panel"><Eyebrow>LOBBY DETAILS</Eyebrow><div className="info-row"><span>بازی</span><strong>{activeLobby.game_name}</strong></div><div className="info-row"><span>منطقه</span><strong>{activeLobby.region || 'EU'}</strong></div><div className="info-row"><span>ظرفیت</span><strong>{members.length} از {activeLobby.max_players} بازیکن</strong></div>{activeLobby.server_url && <a className="server-link" href={activeLobby.server_url} target="_blank" rel="noreferrer">ورود به سرور بازی <span>↗</span></a>}</section>
-          {activeLobby.owner_id === (session && session.user.id) && activeLobby.status === 'open' ? <button className="close-lobby-button" onClick={closeLobby} disabled={busy}><span>⊗</span><span><strong>بستن لابی</strong><small>پایان دادن به چت و پیوستن</small></span><b>↗</b></button> : activeLobby.status === 'open' ? <button className="leave-lobby-button" onClick={leaveLobby}><span>↗</span> خروج از لابی</button> : <button className="leave-lobby-button" onClick={goHome}>بازگشت به فهرست لابی‌ها</button>}
+          {activeLobby.owner_id === (session && session.user.id) && activeLobby.status !== 'closed' ? <button className="close-lobby-button" onClick={closeLobby} disabled={busy}><span>⊗</span><span><strong>بستن لابی</strong><small>پایان دادن به چت و پیوستن</small></span><b>↗</b></button> : activeLobby.status !== 'closed' ? <button className="leave-lobby-button" onClick={leaveLobby}><span>↗</span> خروج از لابی</button> : <button className="leave-lobby-button" onClick={goHome}>بازگشت به فهرست لابی‌ها</button>}
           </aside></div>
         </> : <div className="empty-state"><h3>پنل لابی در دسترس نیست</h3><p>از فهرست لابی‌ها یک لابی باز را انتخاب کن.</p><button className="primary-button" onClick={goHome}>بازگشت</button></div>}
       </section>}
@@ -414,6 +479,29 @@ export default function App() {
       <form className="modal-form" onSubmit={createRoom}><label>نام بازی<input required minLength={2} maxLength={60} value={roomForm.game_name} onChange={(event) => setRoomForm({ ...roomForm, game_name: event.target.value })} placeholder="VALORANT, Minecraft..."/></label><label>عنوان لابی<input required minLength={3} maxLength={80} value={roomForm.title} onChange={(event) => setRoomForm({ ...roomForm, title: event.target.value })} placeholder="دنبال دو هم‌تیمی برای رنک"/></label><label>لینک سرور یا دعوت <span className="optional">اختیاری</span><input type="url" maxLength={500} value={roomForm.server_url} onChange={(event) => setRoomForm({ ...roomForm, server_url: event.target.value })} placeholder="https://..."/></label><label>توضیحات<textarea rows={3} maxLength={1200} value={roomForm.description} onChange={(event) => setRoomForm({ ...roomForm, description: event.target.value })} placeholder="سبک بازی، رنک، میکروفون و ..."/></label>
         <div className="form-pair"><label>منطقه<select value={roomForm.region} onChange={(event) => setRoomForm({ ...roomForm, region: event.target.value })}><option value="EU">Europe (EU)</option><option value="ME">Middle East (ME)</option><option value="NA">North America (NA)</option><option value="ASIA">Asia</option><option value="ANY">Any region</option></select></label><label>ظرفیت بازیکن<select value={roomForm.max_players} onChange={(event) => setRoomForm({ ...roomForm, max_players: event.target.value })}>{[2,3,4,5,6,8,10,20].map((number) => <option key={number} value={number}>{number} بازیکن</option>)}</select></label></div><button className="primary-button modal-submit" type="submit" disabled={busy}>{busy ? 'در حال ساخت...' : 'ساخت پنل لابی'} <span>↗</span></button>
       </form></section></div>}
+    {modal === 'appearance' && <div className="modal-backdrop appearance-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setModal(''); }}>
+      <section className="modal-card appearance-modal" role="dialog" aria-modal="true" aria-labelledby="appearance-title">
+        <button className="modal-close" onClick={() => setModal('')} aria-label="بستن">×</button>
+        <BrandLogo compact />
+        <Eyebrow>PERSONALIZE YOUR SPACE / 04</Eyebrow>
+        <h2 id="appearance-title">فضای خودت رو انتخاب کن.</h2>
+        <p>ظاهر سایت فقط برای همین مرورگر ذخیره می‌شود؛ هر وقت خواستی می‌توانی تغییرش بدهی.</p>
+        <div className="theme-options">
+          <button type="button" className={'theme-option theme-option-neon' + (theme === 'neon' ? ' selected' : '')} onClick={() => { setTheme('neon'); setModal(''); }} aria-pressed={theme === 'neon'}>
+            <span className="theme-preview theme-preview-neon"><i/><i/><i/><b>MM / 06</b></span>
+            <span className="theme-option-copy"><strong>NEON / نسل جدید</strong><small>نئون، شیشه‌ای، بنفش و فیروزه‌ای</small></span>
+            <span className="theme-check">{theme === 'neon' ? '✓' : '＋'}</span>
+          </button>
+          <button type="button" className={'theme-option theme-option-classic' + (theme === 'classic' ? ' selected' : '')} onClick={() => { setTheme('classic'); setModal(''); }} aria-pressed={theme === 'classic'}>
+            <span className="theme-preview theme-preview-classic"><i/><i/><i/><b>MM / 06</b></span>
+            <span className="theme-option-copy"><strong>CLASSIC / ظاهر قبلی</strong><small>تیره، مینیمال، سبز رادیواکتیوی</small></span>
+            <span className="theme-check">{theme === 'classic' ? '✓' : '＋'}</span>
+          </button>
+        </div>
+        <div className="appearance-note"><span>✦</span> انتخابت ذخیره می‌شود و با رفرش صفحه هم باقی می‌ماند.</div>
+      </section>
+    </div>}
+
     {notice && <div className="toast" role="status"><span>✳</span>{notice}<button onClick={() => setNotice('')} aria-label="بستن پیام">×</button></div>}
     {!isSupabaseConfigured && <div className="dev-warning">Supabase هنوز متصل نشده است.</div>}
   </div>;

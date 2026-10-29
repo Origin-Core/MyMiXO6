@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#111527"/><stop offset="1" stop-color="#070910"/></linearGradient><radialGradient id="glow"><stop stop-color="#71e6df" stop-opacity=".14"/><stop offset="1" stop-color="#71e6df" stop-opacity="0"/></radialGradient></defs>
+<rect width="1200" height="630" fill="url(#bg)"/><circle cx="900" cy="150" r="440" fill="url(#glow)"/>
+<g opacity=".15" stroke="#7f8ba8" stroke-width="1"><path d="M0 80H1200M0 160H1200M0 240H1200M0 320H1200M0 400H1200M0 480H1200M0 560H1200"/><path d="M80 0V630M160 0V630M240 0V630M320 0V630M400 0V630M480 0V630M560 0V630M640 0V630M720 0V630M800 0V630M880 0V630M960 0V630M1040 0V630M1120 0V630"/></g>
+<rect x="62" y="62" width="1076" height="506" rx="28" fill="none" stroke="#a99bff" stroke-opacity=".26"/>
+<g transform="translate(125 205) scale(1.9)"><path d="M10 65 L27 25 L47 62 L66 28 L84 64 L104 32 L119 63 L137 27 L158 64" fill="none" stroke="#f4f2ea" stroke-width="5.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 77 C30 99 68 101 96 83 C119 67 142 70 164 82" fill="none" stroke="#d8ff45" stroke-width="5.3" stroke-linecap="round"/><path d="M135 16 L150 38 L166 17 M150 38 L166 59" fill="none" stroke="#d8ff45" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round"/></g>
+<text x="585" y="300" fill="#f4f2ea" font-family="DejaVu Sans, sans-serif" font-size="96" font-weight="700" letter-spacing="-5">MyMiXO<tspan fill="#d8ff45">6</tspan></text>
+<rect x="590" y="340" width="76" height="4" rx="2" fill="#d8ff45"/><text x="590" y="398" fill="#d6d9e5" font-family="DejaVu Sans, sans-serif" font-size="27">BUILD YOUR LOBBY. FIND YOUR SQUAD.</text>
+<text x="590" y="449" fill="#8e97ad" font-family="DejaVu Sans, sans-serif" font-size="23">PRIVATE LOBBIES  •  LIVE TEAM CHAT</text>
+<text x="960" y="525" fill="#8e97ad" font-family="DejaVu Sans Mono, monospace" font-size="15" letter-spacing="3">MYMIXO6 / PLAYER HUB</text>
+</svg>

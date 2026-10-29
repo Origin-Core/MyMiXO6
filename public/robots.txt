@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://origin-core.github.io/MyMiXO6/sitemap.xml
