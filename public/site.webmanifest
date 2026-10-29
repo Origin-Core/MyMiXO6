@@ -1,16 +1,19 @@
 {
-  "name": "MyMiXO6 — Find your squad",
+  "name": "MyMiXO6",
   "short_name": "MyMiXO6",
-  "description": "ساخت لابی بازی و پیدا کردن هم‌تیمی",
   "lang": "fa-IR",
   "dir": "rtl",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#080a12",
-  "theme_color": "#080a12",
+  "background_color": "#080A0C",
+  "theme_color": "#080A0C",
   "icons": [
-    { "src": "./mymixo6-mark.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "./mymixo6-mark.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    {
+      "src": "./mymixo6-favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
   ]
 }

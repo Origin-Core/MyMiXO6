@@ -1,46 +1,48 @@
-# MyMiXO6
+# MyMiXO6 — Team Lobby Platform
 
-وب‌اپ فارسی و راست‌به‌چپ برای ساخت لابی بازی، پیدا کردن هم‌تیمی و هماهنگی در پنل اختصاصی هر لابی. ساخته‌شده با React، Vite و Supabase.
+A Persian RTL gaming-lobby app built with React, Vite and Supabase.
 
-## امکانات
+## Included
 
-- هویت بصری اختصاصی MyMiXO6 با نشان SVG جدید؛ تصویر نمونهٔ ارسالی تنها مرجع فرم و چینش بوده و عیناً به‌عنوان لوگو استفاده نمی‌شود.
-- انتخاب ظاهر `NEON` و `CLASSIC` از داخل سایت؛ انتخاب تم در همان مرورگر ذخیره می‌شود.
-- واکنش نور به حرکت موس، ریزحرکت دوبعدی نشان، حالت فشردن/نگه‌داشتن و انیمیشن‌های ظریف در هر دو تم؛ انیمیشن‌ها برای `prefers-reduced-motion` کاهش می‌یابند.
-- هشت تصویر آواتار اختصاصی برای پروفایل.
-- پنل مجزای هر لابی، فهرست اعضا، پروفایل‌های عمومی و چت زنده با دسترسی محدودشده با RLS.
-- وقتی ظرفیت لابی کامل می‌شود، وضعیت آن به `full` تغییر می‌کند و ساعت ۱۰ دقیقه‌ای از زمان ثبت‌شده در دیتابیس شروع می‌شود. در این مدت اعضا می‌توانند هماهنگی کنند؛ سپس job سمت دیتابیس لابی را خودکار `closed` می‌کند. سازنده هم می‌تواند زودتر آن را ببندد؛ سیاست دیتابیس اجازه نمی‌دهد کلاینت وضعیت لابی را به‌صورت دلخواه دوباره باز یا پر اعلام کند. پس از شروع تایمر، خروج عضو زمان پایان را لغو یا از نو شروع نمی‌کند؛ لابی تا پایان همان مهلت در حالت شمارش باقی می‌ماند و پس از ۱۰ دقیقه بسته می‌شود.
-- جست‌وجو و فیلتر لابی، ساخت/پیوستن/خروج، لینک سرور، و بخش‌های Config و Store.
-- عنوان و توضیحات SEO، canonical، Open Graph/Twitter، schema.org، تصویر اشتراک‌گذاری، sitemap و web manifest.
+- A clean, compact **M monogram + MyMiXO6 wordmark**. The earlier M favicon is restored; the logo no longer depends on generated `.webp` files or a complex animated SVG wordmark.
+- Subtle 2D motion on the mark and wordmark: pointer tracking, hover glow, and press feedback. The Persian hero title animates line-by-line and responds to mouse movement/press in both themes. Reduced-motion preferences are respected.
+- `NEON` and `CLASSIC` appearance choices saved in the current browser. Navigation icons are inline SVGs, not icon-font glyphs, so they do not degrade to square placeholders.
+- The original eight glyph avatars (Nova, Vex, Orbit, Pixel, Ghost, Ember, Luna, Drift) are restored. The generated character portraits are removed from the deployed app.
+- Lobby panels, membership/profile list, private-to-members chat, live updates, owner close control, and server-side ten-minute auto-close after a lobby first reaches capacity.
+- SEO title/description, canonical URL, Open Graph metadata, `robots.txt`, `sitemap.xml`, favicon and web manifest.
 
-## توسعهٔ محلی
+## Brand asset note
 
-به Node.js 22 یا جدیدتر نیاز است.
+`public/mymixo6-mark.svg` is the original M favicon. The main app builds its logo lockup from that visual language and a readable wordmark. The uploaded calligraphic SVG is preserved only as a reference at `design-assets/mymixo6-logo-uploaded-original.svg`; it is not rendered as the app logo. The two theme previews use the same inline logo component as the real site.
+
+## Local run
+
+Requirements: Node.js 22+.
 
 ```sh
 npm install
 npm run dev
 ```
 
-برای توسعهٔ محلی فایل `.env` بساز:
+Create `.env` from `.env.example` for local development. Use only the public Supabase publishable key in client code; never put a service-role/secret key in the frontend.
 
-```dotenv
-VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_PUBLISHABLE_OR_LEGACY_ANON_KEY
+## Build for GitHub Pages
+
+```sh
+npm install --no-audit --no-fund
+npm run build -- --base=/MyMiXO6/
 ```
 
-از کلید `service_role` یا هر کلید secret در مرورگر استفاده نکن.
+GitHub Actions supplies the build-time `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` variables. After committing the files to `main`, check the build/deploy jobs before testing the live site.
 
-## Supabase
+## Supabase note
 
-مهاجرت‌های `20261029080721_mymixo6_lobby_chat_and_members_panel.sql`، `20261029083819_mymixo6_lobby_full_countdown_autoclose.sql` و `20261029083936_mymixo6_public_full_lobby_listing.sql`، `20261029084808_mymixo6_guard_lobby_status_updates.sql`، `20261029085005_mymixo6_prevent_late_reopen_after_grace.sql` و `20261029085257_mymixo6_preserve_full_lobby_countdown.sql` در پروژهٔ Supabase متصل‌شده اعمال شده‌اند. زمان و بستن لابی سمت سرور اجرا می‌شوند؛ تایمر مرورگر فقط نمایش آن است. Job فعال `mymixo6-auto-close-full-lobbies` هر ۳۰ ثانیه لابی‌های پرشده‌ای را که از ۱۰ دقیقه گذشته‌اند می‌بندد. در نتیجه ممکن است وضعیت DB حداکثر حدود ۳۰ ثانیه پس از صفر شدن نمایشگر به‌روزرسانی شود.
+The accompanying `supabase/migrations/` directory includes the database migration history for this project. The linked database already has chat/member RLS and full-capacity timer changes applied; do not manually re-run those SQL files on the existing production database. The automatic closing job runs on the server every 30 seconds, so the final status transition may appear up to roughly 30 seconds after the UI countdown reaches zero.
 
-## انتشار در GitHub Pages
 
-Workflow در `.github/workflows/build.yml` متغیرهای `VITE_SUPABASE_URL` و `VITE_SUPABASE_PUBLISHABLE_KEY` را هنگام build از GitHub Actions Variables می‌خواند. هر دو متغیر باید در Repository → Settings → Secrets and variables → Actions → Variables وجود داشته باشند.
+## Brand assets
 
-سایت فعلی: <https://origin-core.github.io/MyMiXO6/>
-
-نقشهٔ سایت: <https://origin-core.github.io/MyMiXO6/sitemap.xml>
-
-در Google Search Console می‌توان نقشهٔ سایت را با همین URL ثبت کرد. از آنجا که سایت روی GitHub Pages و در مسیر مخزن میزبانی می‌شود، فایل `robots.txt` این پروژه در مسیر `/MyMiXO6/robots.txt` قرار می‌گیرد؛ `robots.txt` استانداردِ دامنه باید در ریشهٔ میزبان باشد و در صورت انتقال سایت به دامنهٔ اختصاصی، باید آن را همان‌جا نیز منتشر کرد.
+- `public/mymixo6-logo.png` is the supplied Neon Green M6 Emblem (cropped only to remove transparent canvas; visible pixels are preserved).
+- `public/mymixo6-favicon.png`, `public/mymixo6-mark.png`, the Web App Manifest, and Open Graph preview all use that same supplied mark.
+- `public/avatars/*.webp` restores the eight character portrait avatars from the prior release.
+- Brand name text is animated separately from the logo image, with hover, pointer-follow, press feedback, and reduced-motion support.

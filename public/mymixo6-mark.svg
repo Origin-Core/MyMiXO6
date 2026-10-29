@@ -1,6 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-  <rect width="128" height="128" rx="30" fill="#080a12"/>
-  <path d="M17 72 L32 35 L48 69 L64 39 L79 72 L96 44 L111 74" fill="none" stroke="#e8edf3" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M18 85 C35 104 64 104 82 88 C93 78 103 78 112 83" fill="none" stroke="#d8ff45" stroke-width="6" stroke-linecap="round"/>
-  <path d="M90 25 L103 40 L114 25 M103 40 L114 53" fill="none" stroke="#d8ff45" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><rect width="512" height="512" fill="#080a0c"/><image href="./mymixo6-logo.png" x="18" y="18" width="476" height="476" preserveAspectRatio="xMidYMid meet"/></svg>

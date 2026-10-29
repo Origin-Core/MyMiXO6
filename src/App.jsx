@@ -22,20 +22,53 @@ const avatarFor = (key) => AVATARS.find((item) => item.id === key) || AVATARS[0]
 const countFor = (room) => Number(room && room.member_count != null ? room.member_count : 1);
 
 function BrandLogo({ stacked = false, compact = false }) {
-  return <div className={'brand-lockup' + (stacked ? ' brand-lockup-stacked' : '') + (compact ? ' brand-lockup-compact' : '')} aria-label="MyMiXO6">
-    <svg className="brand-sigil" viewBox="0 0 180 112" role="img" aria-label="نشان اختصاصی MyMiXO6">
-      <path className="sigil-main" d="M10 65 L27 25 L47 62 L66 28 L84 64 L104 32 L119 63 L137 27 L158 64" />
-      <path className="sigil-sweep" d="M11 77 C30 99 68 101 96 83 C119 67 142 70 164 82" />
-      <path className="sigil-cross" d="M135 16 L150 38 L166 17 M150 38 L166 59" />
-      <circle className="sigil-node" cx="105" cy="32" r="3.2" />
-    </svg>
-    <span className="brand-wordmark">MyMiXO<span>6</span></span>
-  </div>;
+  const handlePointerMove = (event) => {
+    const element = event.currentTarget;
+    if (!element || event.pointerType === 'touch') return;
+    const rect = element.getBoundingClientRect();
+    const x = Math.max(0, Math.min(1, (event.clientX - rect.left) / Math.max(rect.width, 1)));
+    const y = Math.max(0, Math.min(1, (event.clientY - rect.top) / Math.max(rect.height, 1)));
+    element.style.setProperty('--brand-mark-x', ((x - 0.5) * 4.2).toFixed(2) + 'px');
+    element.style.setProperty('--brand-mark-y', ((y - 0.5) * 3.2).toFixed(2) + 'px');
+    element.style.setProperty('--brand-text-x', ((0.5 - x) * 5.2).toFixed(2) + 'px');
+    element.style.setProperty('--brand-text-y', ((0.5 - y) * 3.8).toFixed(2) + 'px');
+    element.style.setProperty('--brand-light-x', (x * 100).toFixed(1) + '%');
+  };
+  const resetPointer = (event) => {
+    const element = event.currentTarget;
+    if (!element) return;
+    element.style.setProperty('--brand-mark-x', '0px');
+    element.style.setProperty('--brand-mark-y', '0px');
+    element.style.setProperty('--brand-text-x', '0px');
+    element.style.setProperty('--brand-text-y', '0px');
+    element.style.setProperty('--brand-light-x', '50%');
+    element.classList.remove('is-pressed');
+  };
+  const wordmark = Array.from('MyMiXO6');
+  return <span
+    className={'brand-lockup' + (stacked ? ' brand-lockup-stacked' : '') + (compact ? ' brand-lockup-compact' : '')}
+    onPointerMove={handlePointerMove}
+    onPointerLeave={resetPointer}
+    onPointerDown={(event) => event.currentTarget.classList.add('is-pressed')}
+    onPointerUp={(event) => event.currentTarget.classList.remove('is-pressed')}
+    onPointerCancel={resetPointer}
+    aria-label="MyMiXO6"
+    role="img"
+  >
+    <span className="brand-image-shell" aria-hidden="true">
+      <img className="brand-logo-image" src={PUBLIC_BASE + 'mymixo6-logo.png'} alt="" draggable="false" loading="eager" />
+    </span>
+    <span className="brand-wordmark" aria-hidden="true">{wordmark.map((character, index) => <span
+      key={index}
+      className={'brand-letter' + (character === '6' ? ' brand-letter-six' : '')}
+      style={{ '--letter-index': index }}
+    >{character}</span>)}</span>
+  </span>;
 }
 function Avatar({ profile, size = 'md' }) {
   const avatar = avatarFor(profile && profile.avatar_key);
   return <span className={'avatar avatar-' + size} style={{ '--avatar-accent': avatar.accent }} title={(profile && (profile.display_name || profile.username)) || avatar.name}>
-    <img className="avatar-image" src={PUBLIC_BASE + 'avatars/' + avatar.id + '.webp'} alt={avatar.name} loading="lazy" />
+    <img className="avatar-image" src={PUBLIC_BASE + 'avatars/' + avatar.id + '.webp'} alt={avatar.name + ' gamer avatar'} loading="lazy" decoding="async" />
   </span>;
 }
 function Icon({ children }) { return <span className="icon" aria-hidden="true">{children}</span>; }
