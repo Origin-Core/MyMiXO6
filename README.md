@@ -1,32 +1,43 @@
 # MyMiXO6
 
-A Persian, right-to-left gaming lobby site built with React, Vite, and Supabase.
+وب‌اپ فارسی و راست‌به‌چپ برای ساخت لابی بازی، پیدا کردن هم‌تیمی و هماهنگی در پنل اختصاصی هر لابی. ساخته‌شده با React، Vite و Supabase.
 
-## Included features
+## امکانات این نسخه
 
-- Email/password sign-up with email confirmation and persistent browser sessions.
-- Public player profiles with preset avatars; email addresses are not stored in the public profile table or shown on the site.
-- Searchable public lobbies, join/create flows, invite links, and server-side capacity enforcement.
-- Config and Store sections marked as coming soon.
-- Supabase migrations and Render static-site configuration.
+- رابط تاریک جدید، انیمیشن‌های ظریف، فونت فارسی خواناتر و لوگوی بارگذاری‌شدهٔ MyMiXO6.
+- هشت تصویر آواتار اختصاصی برای انتخاب در پروفایل.
+- صفحهٔ اختصاصی برای هر لابی، فهرست اعضا، مشاهدهٔ پروفایل اعضای همان لابی و چت زنده.
+- بستن لابی توسط سازنده؛ پس از بسته‌شدن، ارسال پیام تازه و پیوستن متوقف می‌شود.
+- محدودیت دسترسی سمت دیتابیس با RLS برای پیام‌ها، فهرست اعضا و پنل لابی.
+- جست‌وجو و فیلتر لابی، ساخت/پیوستن/خروج از لابی، لینک سرور و بخش‌های Config و Store.
 
-## Local development
+## اجرا در محیط محلی
 
-Node.js 22 or newer is recommended.
+به Node.js 22 یا جدیدتر نیاز است.
 
 ```sh
 npm install
 npm run dev
 ```
 
-The supplied `.env` contains only the Supabase project URL and a **publishable client key**. Do not use a Supabase `service_role` key or secret key in the browser. The `.env` file is ignored by Git; Render receives the same publishable values through `render.yaml`.
+برای توسعهٔ محلی فایل `.env` بساز و مقادیر عمومی پروژه را وارد کن:
 
-## Database
+```dotenv
+VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_PUBLISHABLE_OR_LEGACY_ANON_KEY
+```
 
-The migrations in `supabase/migrations/` are in order and match the MyMiXO6 Supabase project. They create the profile/lobby tables, RLS policies, signup profile trigger, lobby capacity checks, safe member counts, and invite URL validation. Do not paste the schema into a different production database without reviewing the target first.
+از کلید `service_role` یا هر کلید secret در مرورگر استفاده نکن. فایل `.env` در Git نادیده گرفته می‌شود.
 
-## Deployment
+## Supabase
 
-`render.yaml` configures a static site build, SPA fallback route, basic security headers, and the public Supabase client values. Once this repository is connected to GitHub and deployed through Render, set the resulting site's exact HTTPS URL as the Supabase Auth **Site URL** and add that origin to the Auth **Redirect URLs** allow-list. Email confirmation links use the current site origin, so this step is required before end-to-end registration testing on the deployed domain.
+مهاجرت `20261029080721_mymixo6_lobby_chat_and_members_panel.sql` جدول `lobby_messages` را می‌سازد، دسترسی فهرست اعضا را به اعضای همان لابی محدود می‌کند و تغییرات لابی/اعضا/پیام‌ها را برای Realtime منتشر می‌کند. این مهاجرت در پروژهٔ Supabase متصل‌شده با موفقیت اعمال شده است.
 
-For public sign-ups, verify that email delivery is configured for your intended audience. Supabase's default test email service is not intended as a production mail service; a verified custom SMTP provider is normally needed for dependable delivery.
+آدرس Auth برای GitHub Pages:
+
+- Site URL: `https://origin-core.github.io/MyMiXO6/`
+- Redirect URL: `https://origin-core.github.io/MyMiXO6/`
+
+## انتشار در GitHub Pages
+
+Workflow در `.github/workflows/build.yml` متغیرهای `VITE_SUPABASE_URL` و `VITE_SUPABASE_PUBLISHABLE_KEY` را هنگام build از GitHub Actions Variables می‌خواند. هر دو متغیر باید در Repository → Settings → Secrets and variables → Actions → Variables وجود داشته باشند.
